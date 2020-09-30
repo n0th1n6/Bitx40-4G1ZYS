@@ -19,21 +19,31 @@
 #define  LCD_COLS  16
 
 // LCD pin definitions 
+/* // Raduino on Bitx40
 #define  LCD_RS    8
 #define  LCD_ENA   9
 #define  LCD_D4    10
 #define  LCD_D5    LCD_D4+1
 #define  LCD_D6    LCD_D4+2
 #define  LCD_D7    LCD_D4+3
+*/
+
+#define  LCD_RS    5
+#define  LCD_ENA   6
+#define  LCD_D4    7
+#define  LCD_D5    LCD_D4+1
+#define  LCD_D6    LCD_D4+2
+#define  LCD_D7    LCD_D4+3
+
 
 #define ENABLE_SPEED 1 // if sant to enable velocity tuning wherein the faster the knob rotation is the faster the frequency changes
 
 static LiquidCrystal lcd(LCD_RS, LCD_ENA, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 // Rotary Encoder and KeySwitch Setup ------
-const uint8_t RE_A_PIN = 2;
-const uint8_t RE_B_PIN = 3;
-const uint8_t CTL_PIN = 4;
+const uint8_t RE_A_PIN = 3;
+const uint8_t RE_B_PIN = 2;
+const uint8_t CTL_PIN = 11;
 
 MD_REncoder  RE(RE_A_PIN, RE_B_PIN);
 MD_KeySwitch swCtl(CTL_PIN);
@@ -49,8 +59,8 @@ Si5351mcu Si;
 // tuning range parameters
 
 // USB/LSB parameters
-#define CAL_VALUE 170000UL        // VFO calibration value
-#define OFFSET_USB 1500           // USB offset in Hz [accepted range -10000Hz to 10000Hz]
+#define CAL_VALUE 2430UL        // VFO calibration value
+#define IF_OFFSET 1500           // USB offset in Hz [accepted range -10000Hz to 10000Hz]
 #define VFO_DRIVE_LSB 4           // VFO drive level in LSB mod in mA [accepted values 2,4,6,8 mA]
 #define VFO_DRIVE_USB 8           // VFO drive level in USB mod in mA [accepted values 2,4,6,8 mA]
 
@@ -64,7 +74,7 @@ Si5351mcu Si;
 #define CWU (3)
 
 // available PINS 5,6,7,22,A0, A1, A3
-#define BAND_PIN (5)
+#define BAND_PIN (12)
 #define DEFAULTBAND 0 // this is base on the order you define in the variables below
 
 // User variables
@@ -99,7 +109,7 @@ int subMenuCtr = 0;
 int ifMenuCtr = 0;
 
 struct userparameters {
-  int USB_OFFSET = OFFSET_USB;
+  int USB_OFFSET;
   unsigned long cal = CAL_VALUE;
   int mod = LSB;
   int stepmode = 1;
@@ -131,34 +141,39 @@ void setFrequency(unsigned long f) {
 
   switch (u.mod) {
     case LSB:
-      tbfo = u.bfo[u.mod];
-      vfo_freq = f - tbfo + RIT;
+      tbfo = u.bfo[u.mod] + IF_OFFSET;
+      vfo_freq = u.bfo[u.mod] - f + RIT;
       break;
     case USB:
-      tbfo = u.bfo[u.mod];
-      vfo_freq = f + tbfo + RIT;
+      tbfo = u.bfo[u.mod] - IF_OFFSET;
+      vfo_freq = f - u.bfo[u.mod] + RIT;
       break;
     case CWL:
-      tbfo = u.bfo[u.mod-2];
-      vfo_freq = f - tbfo - CW_SHIFT + RIT;
+      tbfo = u.bfo[u.mod-2] + IF_OFFSET;
+      vfo_freq = f + u.bfo[u.mod-2] - CW_SHIFT + RIT;
       break;
     case CWU:
-      tbfo = u.bfo[u.mod-2];
-      vfo_freq = f + tbfo + CW_SHIFT + RIT;
+      tbfo = u.bfo[u.mod-2] - IF_OFFSET;
+      vfo_freq = f - u.bfo[u.mod-2] + CW_SHIFT + RIT;
       break;
     default:
       vfo_freq = f - u.bfo[u.mod] + RIT;
       u.mod = LSB;
       break;
   }
-  Si.setFreq(0, vfo_freq + RIT);
-  Si.setFreq(2, tbfo);
+  Si.setFreq(0, vfo_freq);
   Si.enable(0);
+  Si.setFreq(2, tbfo);
   Si.enable(2);
 
   if (topMenuList[topMenuCtr] == "Main") {
     mainDisplay(true);
   }
+
+  if (topMenuList[topMenuCtr] == "BFO") {
+    updateIFDisplay(false);
+  }
+
   memSaved = 0;
 }
 
@@ -390,7 +405,7 @@ void ifMenu(uint8_t x, uint8_t rspeed) {
     // u.bfo[u.currentBand] = bfo[u.currentBand];
     u.bfo[u.bfoBand] += ((x == DIR_CW) ? 1*rspeed : -1*rspeed);
   }
-  updateIFDisplay(false);
+  setFrequency(u.vfo[u.currentBand][u.vfomode]);
   
 }
 
@@ -444,13 +459,15 @@ void setup(void)
   unsigned long warmUpFreq = 60000000UL;
 
   Si.init(25000000);
-  Si.correction(1700);
+  Si.correction(CAL_VALUE);
   Si.disable(2);
   delay(500);
   
   // SIOUT_2mA, SIOUT_4mA, SIOUT_6mA and SIOUT_8mA
+  Si.setPower(0, SIOUT_4mA);
   Si.setPower(2, SIOUT_4mA);
 
+  Si.setFreq(0, warmUpFreq);
   Si.setFreq(2, warmUpFreq);
 
   Si.reset();
