@@ -5,6 +5,15 @@
  *      4G1ZYS
  *      nrafallo@gmail.com
  *      
+ *  This vfo/bfo uses the following libraries
+ *  
+ *  From MajicDesigns - https://github.com/MajicDesigns?tab=repositories
+ *    MD_Rencoder
+ *    MD_KeySwitch
+ *    
+ *  EtherKit Si5351 Library from - https://github.com/etherkit/Si5351Arduino
+ *  
+ *  All of the libraries used are available also from library manager
 */
 
 #include <LiquidCrystal.h>
@@ -14,7 +23,7 @@
 #include <Wire.h>
 #include <si5351.h>
 
-#define RADUINO
+#define EBITX // define this either as RADUINO or EBITX to seleect the board
 /* LCD type */
 #define  LCD_ROWS  2
 #define  LCD_COLS  16
