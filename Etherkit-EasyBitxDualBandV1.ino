@@ -67,14 +67,14 @@
 
 // tuning range parameters
 // USB/LSB parameters
-#define CAL_VALUE   (196100ULL)        // VFO calibration value 198100UL
-#define IF_OFFSET   1500UL           // USB offset in Hz [accepted range -10000Hz to 10000Hz]
-#define VFO_DRIVE_LSB 4           // VFO drive level in LSB mod in mA [accepted values 2,4,6,8 mA]
-#define VFO_DRIVE_USB 8           // VFO drive level in USB mod in mA [accepted values 2,4,6,8 mA]
-#define FREQ_MULT 100ULL
+#define CAL_VALUE     (196100ULL)   // VFO calibration value
+#define IF_OFFSET     1500UL        // USB offset in Hz [accepted range -10000Hz to 10000Hz]
+#define VFO_DRIVE_LSB 4             // VFO drive level in LSB mod in mA [accepted values 2,4,6,8 mA]
+#define VFO_DRIVE_USB 8             // VFO drive level in USB mod in mA [accepted values 2,4,6,8 mA]
+#define FREQ_MULT     100ULL
 
 // CW parameters
-#define CW_SHIFT 500              // RX shift in CW mod in Hz, equal to sidetone pitch [accepted range 200-1200 Hz]
+#define CW_SHIFT 500              // RX shift in CW mode in Hz, equal to sidetone pitch [accepted range 200-1200 Hz]
 
 // modes
 #define LSB (0)
@@ -84,7 +84,7 @@
 
 // available PINS 5,6,7,22,A0, A1, A3
 #define BAND_PIN    (5)
-#define DEFAULTBAND 0 // this is base on the order you define in the variables below
+#define DEFAULTBAND 0 //this is base on the order you define in the variables below
 
 // User variables
 unsigned long frequency;
@@ -501,7 +501,7 @@ void setup(void)
  
   unsigned long long warmUpFreq = 60000000ULL;
 
-  bool i2c_found = si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, u.cal);
+  bool i2c_found = si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
   if(!i2c_found)
   {
     Serial.println("No Si5351 found!");
@@ -512,16 +512,16 @@ void setup(void)
   warmUpFreq = warmUpFreq * FREQ_MULT;
   si5351.set_freq(warmUpFreq, SI5351_CLK0);
   si5351.set_freq(warmUpFreq, SI5351_CLK2);
-  si5351.output_enable(SI5351_CLK0, 1);
-  si5351.output_enable(SI5351_CLK2, 1);
  
-  si5351.reset();
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_4MA);
   si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_4MA);
 
+  si5351.reset();
   setFrequency(frequency);
   bfo = (u.mod == LSB) || ((u.mod - 2) == LSB) ? (u.bfo - IF_OFFSET) : (u.bfo + IF_OFFSET);
   si5351.set_freq(bfo * FREQ_MULT, SI5351_CLK2);
+  si5351.output_enable(SI5351_CLK0, 1);
+  si5351.output_enable(SI5351_CLK2, 1);
 
 }
 
